@@ -13,29 +13,27 @@ label_syntax = re.compile(r'^\s*\[\s*([A-Z0-9])+\s*\](.+)$')
 comment_syntax = re.compile(r'^\s*#.+$')
 
 
-def parse(src_file):
+def parse(raw_src):
     src = []
     labels = {}
-    with open(src_file) as f:
-        for ins in f.readlines():
-            ins = ins.strip().upper()
-            if not ins or comment_syntax.match(ins):
-                continue
-            if m := label_syntax.match(ins):
-                label = m[1]
-                if label not in labels:
-                    labels[label] = len(src)
-                ins = m[2]
-            src.append(ins.strip())
+    for ins in raw_src.split('\n'):
+        ins = ins.strip().upper()
+        if not ins or comment_syntax.match(ins):
+            continue
+        if m := label_syntax.match(ins):
+            label = m[1]
+            if label not in labels:
+                labels[label] = len(src)
+            ins = m[2]
+        src.append(ins.strip())
     return src, labels
 
 
-def run(src_file, args):
-    src, labels = parse(src_file)
+def run(src, labels, args):
     vars = defaultdict(int)
     labels = defaultdict(lambda: len(src), labels)
 
-    for i, x in enumerate(args):
+    for i, x in enumerate(args.x):
         vars[f'X{i+1}'] = x
 
     pc = 0 # program counter
@@ -58,12 +56,23 @@ def run(src_file, args):
             print(f'Invalid instruction: {ins}')
             sys.exit(1)
 
-    print('Y =', vars['Y'])
+    return vars['Y']
+
+
+def main(args):
+    if args.src == '-':
+        raw_src = sys.stdin.read()
+    else:
+        with open(args.src) as f:
+            raw_src = f.read()
+    src, labels = parse(raw_src)
+    result = run(src, labels, args)
+    print(result)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('x', metavar='X1, X2, ...', type=int, nargs='*')
-    parser.add_argument('--src', dest='src', type=str)
+    parser.add_argument('--src', dest='src', type=str, metavar='', default='-', help='input source file (default stdin)')
     args = parser.parse_args()
-    run(args.src, args.x)
+    main(args)
