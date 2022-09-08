@@ -37,11 +37,19 @@ def run(src, labels, args):
         vars[f'X{i+1}'] = x
 
     pc = 0 # program counter
+    steps = 0
     while True:
         if pc == len(src):
             break
+
+        if args.max_steps > 0 and steps == args.max_steps:
+            print('Max steps executed, program killed')
+            sys.exit(1)
+
         ins = src[pc]
         pc += 1
+        steps += 1
+
         if m := add_syntax.match(ins):
             v = m[1]
             vars[v] += 1
@@ -74,5 +82,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('x', metavar='X1, X2, ...', type=int, nargs='*')
     parser.add_argument('--src', dest='src', type=str, metavar='', default='-', help='input source file (default stdin)')
+    parser.add_argument('--max-steps', dest='max_steps', metavar='', type=int, default=0, help='max steps before stopping execution (0 runs forever)')
     args = parser.parse_args()
     main(args)
